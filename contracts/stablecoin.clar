@@ -222,3 +222,19 @@
             (ok true))
     )
 )
+
+;; Admin functions
+(define-public (set-price (new-price uint))
+    (begin
+        (asserts! (is-eq tx-sender (var-get price-oracle)) ERR-NOT-AUTHORIZED)
+        (var-set btc-price new-price)
+        (var-set last-price-update block-height)
+        (ok true))
+)
+
+(define-public (set-price-oracle (new-oracle principal))
+    (begin
+        (asserts! (is-eq tx-sender (var-get contract-owner)) ERR-NOT-AUTHORIZED)
+        (var-set price-oracle new-oracle)
+        (ok true))
+)
