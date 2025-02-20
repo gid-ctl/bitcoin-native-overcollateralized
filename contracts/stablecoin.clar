@@ -109,3 +109,47 @@
             (ok true))
     )
 )
+
+;; Public functions
+(define-public (deposit-collateral (amount uint))
+    (begin
+        (try! (check-min-collateral amount))
+        (let (
+            (current-position (default-to 
+                { collateral: u0, debt: u0, last-update: block-height }
+                (get-position tx-sender)
+            ))
+        )
+            (map-set user-positions tx-sender
+                {
+                    collateral: (+ amount (get collateral current-position)),
+                    debt: (get debt current-position),
+                    last-update: block-height
+                }
+            )
+            (ok true))
+    )
+)
+
+(define-public (mint-stablecoin (amount uint))
+    (begin
+        (try! (check-price-freshness))
+        (let (
+            (current-position (unwrap! (get-position tx-sender) ERR-POSITION-NOT-FOUND))
+            (new-debt (+ amount (get debt current-position)))
+            (collateral-value (* (get collateral current-position) (var-get btc-price)))
+            (required-collateral (* new-debt MIN-COLLATERAL-RATIO))
+        )
+            (asserts! (>= collateral-value required-collateral) ERR-INSUFFICIENT-COLLATERAL)
+            
+            (map-set user-positions tx-sender
+                {
+                    collateral: (get collateral current-position),
+                    debt: new-debt,
+                    last-update: block-height
+                }
+            )
+            (var-set total-supply (+ (var-get total-supply) amount))
+            (ok true))
+    )
+)
